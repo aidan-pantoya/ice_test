@@ -1,8 +1,4 @@
-import csv
-import geopandas as gpd
-from shapely.geometry import shape, Point, Polygon
-import requests
-import json
+from shapely.geometry import Polygon
 from shapely.validation import explain_validity
 import numpy
 import cv2
@@ -17,7 +13,7 @@ from shapely.ops import unary_union
 # Version 3/20/2024
 # Author: Aidan D. Pantoya
 
-testphrase = '' # Enter a file name, or leave blank to run all
+testphrase = '14Nov20' # Enter a file name, or leave blank to run all
 
 def preprocess_and_correct_geometries(df):
     df['geometry'] = df['geometry'].apply(lambda geom: geom.buffer(0) if not geom.is_valid else geom)
@@ -62,9 +58,9 @@ def find_and_draw_sea_ice_boundaries(image_path):
             lat = max(min(lat, 90), -90)
             geo_contour.append((lon, lat))
         geo_boundaries.append(geo_contour)
-    # cv2.imshow('og', img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow('og', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     return geo_boundaries
 
 def plot_boundaries_on_map(boundaries):
