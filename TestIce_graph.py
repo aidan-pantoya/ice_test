@@ -15,6 +15,9 @@ from shapely.ops import unary_union
 
 testphrase = '14Nov20' # Enter a file name, or leave blank to run all
 
+icefile = 'C:/Users/apant/PINE/HySplit/iceimages'
+
+
 def preprocess_and_correct_geometries(df):
     df['geometry'] = df['geometry'].apply(lambda geom: geom.buffer(0) if not geom.is_valid else geom)
     return df
@@ -107,9 +110,6 @@ def extract_coordinates(geometry):
         return [list(geometry.exterior.coords)]
     else:
         raise TypeError("Geometry must be a Polygon or MultiPolygon")
-
-
-icefile = 'C:/Users/apant/PINE/HySplit/iceimages'
 
 foundicefiles = find_png_files(icefile,testphrase)
 
