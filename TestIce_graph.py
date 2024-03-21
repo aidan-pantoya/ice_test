@@ -15,7 +15,7 @@ from shapely.ops import unary_union
 
 testphrase = '14Nov20' # Enter a file name, or leave blank to run all
 
-icefile = 'C:/Users/apant/PINE/HySplit/iceimages'
+icefile = 'C:/Users/apant/Downloads/ice_test/iceimages'
 
 
 def preprocess_and_correct_geometries(df):
