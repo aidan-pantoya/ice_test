@@ -1,5 +1,4 @@
 from shapely.geometry import Polygon
-from shapely.validation import explain_validity
 import numpy
 import cv2
 import plotly.graph_objs as go
@@ -10,20 +9,22 @@ import pandas as pd
 from shapely.geometry import MultiPolygon
 from shapely.ops import unary_union
 
-# Version 3/20/2024
-# Author: Aidan D. Pantoya
+# Version 4/16/2024
+# Author: Aidan D. Pantoya, Caleb Ebenkamp
 
-testphrase = '14Nov20' # Enter a file name, or leave blank to run all
+testphrase = 'south' # Enter a file name, or leave blank to run all
 
 icefile = 'C:/Users/apant/Downloads/ice_test/iceimages'
 
+north = False
 
 def preprocess_and_correct_geometries(df):
     df['geometry'] = df['geometry'].apply(lambda geom: geom.buffer(0) if not geom.is_valid else geom)
     return df
 
-def find_and_draw_sea_ice_boundaries(image_path):
+def find_and_draw_sea_ice_boundaries(image_path,north):
     img = cv2.imread(image_path)
+    # cv2.imshow("img",img)
 
     img = img[0:int(img.shape[0]/(1.012)), :]
     img = img[int(img.shape[0]/(15)):img.shape[0], :]
@@ -36,34 +37,52 @@ def find_and_draw_sea_ice_boundaries(image_path):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     _, thresholded = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
     contours, _ = cv2.findContours(thresholded, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
     img_height, img_width = img.shape[:2]
     center_x, center_y = img_width / 2, img_height / 2
     max_radius = min(center_x, center_y)
-    scale_factor = 0.41
     geo_boundaries = []
     for contour in contours:
         if cv2.contourArea(contour) < 5:
             continue
         cv2.drawContours(img, [contour], -1, (0, 255, 0), thickness=cv2.FILLED)
         geo_contour = []
-        for point in contour:
-            x, y = point[0]
-            dx, dy = x - center_x, y - center_y
-            radius = math.sqrt(dx**2 + dy**2)
-            angle = math.atan2(dy, dx)
-            lat = 90 - (radius / max_radius * 90 * scale_factor)
-            lon = (angle / math.pi * 180) % 360
-            lon = -lon
-            lon +=44.8
-            if lon > 180:
-                lon -= 360
+        if north:
+            scale_factor = 0.41
+            for point in contour:
+                x, y = point[0]
+                dx, dy = x - center_x, y - center_y
+                radius = math.sqrt(dx**2 + dy**2)
+                angle = math.atan2(dy, dx)
+                lat = 90 - (radius / max_radius * 90 * scale_factor)
+                lon = (angle / math.pi * 180) % 360
+                lon = -lon
+                lon +=44.8
+                if lon > 180:
+                    lon -= 360
 
-            lat = max(min(lat, 90), -90)
-            geo_contour.append((lon, lat))
+                lat = max(min(lat, 90), -90)
+                geo_contour.append((lon, lat))
+        else:
+            scale_factor = 0.4
+            for point in contour:
+                x, y = point[0]
+                dx, dy = x - center_x, y - center_y
+                radius = math.sqrt(dx**2 + dy**2)
+                angle = math.atan2(dy, dx)
+                lat = (radius / max_radius * 90 * scale_factor) - 90
+                lon = (angle / math.pi * 180) % 360
+                lon +=44.8
+                if lon > 180:
+                    lon -= 360
+
+                lat = max(min(lat, 90), -90)
+                geo_contour.append((lon, lat))
+
         geo_boundaries.append(geo_contour)
-    cv2.imshow('og', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('og', img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
     return geo_boundaries
 
 def plot_boundaries_on_map(boundaries):
@@ -115,7 +134,7 @@ foundicefiles = find_png_files(icefile,testphrase)
 
 geo_boundaries = []
 for foundicefile in foundicefiles:
-    boundaries = find_and_draw_sea_ice_boundaries(foundicefile)
+    boundaries = find_and_draw_sea_ice_boundaries(foundicefile,north)
     for coords in boundaries:
         df = create_geometry_df([Polygon(coords)])
         if df is not None:
